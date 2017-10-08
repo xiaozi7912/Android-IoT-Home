@@ -1,0 +1,3 @@
+[submodule "xiaozi-framework"]
+	path = xiaozi-framework
+	url = git@github.com:xiaozi7912/xiaozi.framework.git

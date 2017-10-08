@@ -1,0 +1,2 @@
+include ':app', ':bmp180', ':module-framework'
+project(':module-framework').projectDir = new File('xiaozi-framework/module-framework')
