@@ -74,6 +74,7 @@
             android:textSize="20sp" />
 
         <com.xiaozi.framework.libs.view.NetworkInfoView
+            android:id="@+id/main_network_info_view"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"

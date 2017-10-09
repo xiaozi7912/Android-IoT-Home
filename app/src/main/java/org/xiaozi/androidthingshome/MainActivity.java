@@ -12,15 +12,25 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.GpioCallback;
 import com.google.android.things.pio.PeripheralManagerService;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.RemoteMessage;
@@ -29,9 +39,12 @@ import com.samgol.driver.bmp180.Bmp180SensorDriver;
 import com.xiaozi.framework.libs.BaseActivity;
 import com.xiaozi.framework.libs.utils.Logger;
 import com.xiaozi.framework.libs.view.DevInfoView;
+import com.xiaozi.framework.libs.view.NetworkInfoView;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -40,8 +53,11 @@ public class MainActivity extends BaseActivity {
     private Button mGetGPIOInfoButton = null;
     private Button mLedRedButton, mLedGreenButton, mLedBlueButton;
     private TextView mBmp180InfoTextView = null;
+    private NetworkInfoView mNetworkInfoView = null;
     private DevInfoView mDevInfoView = null;
 
+    private FirebaseAuth mAuth = null;
+    private FirebaseFirestore mDatabase = null;
     private BluetoothAdapter mBluetoothAdapter = null;
     private PeripheralManagerService mService = null;
     private SensorManager mSensorManager = null;
@@ -61,6 +77,7 @@ public class MainActivity extends BaseActivity {
     private float mTemperature = 0f;
     private float mPressure = 0f;
     private double mAltitde = 0f;
+    private long mLastUpdateTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,17 +85,23 @@ public class MainActivity extends BaseActivity {
         setContentView(R.layout.activity_main);
 
         Logger.init(BuildConfig.SHOW_DEV_INFO);
+        mAuth = FirebaseAuth.getInstance();
+        mDatabase = FirebaseFirestore.getInstance();
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mService = new PeripheralManagerService();
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Logger.d(LOG_TAG, "onCreate FirebaseInstanceId.getInstance.getId : " + FirebaseInstanceId.getInstance().getId());
         Logger.d(LOG_TAG, "onCreate FirebaseInstanceId.getInstance.getToken : " + FirebaseInstanceId.getInstance().getToken());
 
-//        sendFirebaseMessage("aabbccdd");
         initView();
         initBluetooth();
         initGPIOPins();
         initSensors();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
     @Override
@@ -146,6 +169,7 @@ public class MainActivity extends BaseActivity {
         mLedGreenButton = findViewById(R.id.main_led_green_button);
         mLedBlueButton = findViewById(R.id.main_led_blue_button);
         mBmp180InfoTextView = findViewById(R.id.main_bmp180_info_text);
+        mNetworkInfoView = findViewById(R.id.main_network_info_view);
         mDevInfoView = findViewById(R.id.main_dev_info_view);
 
         mBmp180InfoTextView.setText("None");
@@ -283,6 +307,18 @@ public class MainActivity extends BaseActivity {
             mTemperature = mBmp180.readTemperature();
             mPressure = mBmp180.readPressure();
             mAltitde = (Math.round(mBmp180.readAltitude() * 10) / 10.0F);
+
+            long currentTime = System.currentTimeMillis();
+            if ((currentTime - mLastUpdateTime) > (10 * 1000)) {
+                Map<String, Object> data = new HashMap<String, Object>();
+                data.put("temperaure", mTemperature);
+                data.put("pressure", mPressure);
+                data.put("altitude", mAltitde);
+                data.put("create_time", currentTime);
+
+                addBMP180ToFirebase(currentTime, data);
+                mLastUpdateTime = currentTime;
+            }
             Logger.d(LOG_TAG, "readBmp180Data mTemperature : " + mTemperature);
             Logger.d(LOG_TAG, "readBmp180Data mPressure : " + mPressure);
             Logger.d(LOG_TAG, "readBmp180Data mAltitde : " + mAltitde);
@@ -349,6 +385,71 @@ public class MainActivity extends BaseActivity {
         fm.send(new RemoteMessage.Builder("androidthings-4aca2@gcm.googleapis.com")
                 .addData("message", message)
                 .build());
+    }
+
+    private void addBMP180ToFirebase(long currentTime, Map<String, Object> data) {
+        Logger.i(LOG_TAG, "addBMP180ToFirebase");
+        Logger.d(LOG_TAG, "addBMP180ToFirebase data : " + data);
+        String deviceId = mNetworkInfoView.getMACAddress();
+        String itemId = String.valueOf(currentTime);
+        Map<String, Object> deviceProfile = new HashMap<String, Object>();
+        deviceProfile.put("platform", "Raspberry Pi 3");
+
+        mDatabase.collection("devices").document(deviceId).set(deviceProfile).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                Logger.i(LOG_TAG, "addBMP180ToFirebase onSuccess");
+            }
+        });
+        mDatabase.collection("devices").document(deviceId).collection("sensor_bmp180").document(itemId).set(data)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Logger.i(LOG_TAG, "addBMP180ToFirebase onSuccess");
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Logger.i(LOG_TAG, "addBMP180ToFirebase onFailure");
+                    }
+                });
+    }
+
+    private void addUserToFirebase(Map<String, Object> user) {
+        Logger.i(LOG_TAG, "addUserToFirebase");
+        Logger.d(LOG_TAG, "addUserToFirebase user : " + user);
+        mDatabase.collection("users").add(user).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+            @Override
+            public void onSuccess(DocumentReference documentReference) {
+                Logger.i(LOG_TAG, "addUserToFirebase onSuccess");
+                Logger.d(LOG_TAG, "addUserToFirebase onSuccess documentReference.getId : " + documentReference.getId());
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Logger.i(LOG_TAG, "addUserToFirebase onFailure");
+            }
+        });
+    }
+
+    private void getUsersFromFirebase() {
+        Logger.i(LOG_TAG, "getUsersFromFirebase");
+        mDatabase.collection("users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                Logger.i(LOG_TAG, "getUsersFromFirebase onComplete");
+                Logger.d(LOG_TAG, "getUsersFromFirebase onComplete task.isSuccessful : " + task.isSuccessful());
+                if (task.isSuccessful()) {
+                    for (DocumentSnapshot document : task.getResult()) {
+                        String userId = document.getId();
+                        String userName = document.getData().get("name").toString();
+                        Logger.d(LOG_TAG, "getUsersFromFirebase onComplete userId : " + userId);
+                        Logger.d(LOG_TAG, "getUsersFromFirebase onComplete userName : " + userName);
+                    }
+                }
+            }
+        });
     }
 
     private void onGetGPIOInfoButtonClick() {
