@@ -25,7 +25,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.GpioCallback;
-import com.google.android.things.pio.PeripheralManagerService;
+import com.google.android.things.pio.PeripheralManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -59,7 +59,7 @@ public class MainActivity extends BaseActivity {
     private FirebaseAuth mAuth = null;
     private FirebaseFirestore mDatabase = null;
     private BluetoothAdapter mBluetoothAdapter = null;
-    private PeripheralManagerService mService = null;
+    private PeripheralManager mService = null;
     private SensorManager mSensorManager = null;
 
     private Gpio mLedRedGPIO, mLedGreenGPIO, mLedBlueGPIO, mRelayGPIO;
@@ -88,7 +88,7 @@ public class MainActivity extends BaseActivity {
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseFirestore.getInstance();
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        mService = new PeripheralManagerService();
+        mService = PeripheralManager.getInstance();
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Logger.d(LOG_TAG, "onCreate FirebaseInstanceId.getInstance.getId : " + FirebaseInstanceId.getInstance().getId());
         Logger.d(LOG_TAG, "onCreate FirebaseInstanceId.getInstance.getToken : " + FirebaseInstanceId.getInstance().getToken());
@@ -456,7 +456,7 @@ public class MainActivity extends BaseActivity {
         Logger.i(LOG_TAG, "onGetGPIOInfoButtonClick");
         Logger.d(LOG_TAG, "onGetGPIOInfoButtonClick mService.getGpioList : " + mService.getGpioList());
         Logger.d(LOG_TAG, "onGetGPIOInfoButtonClick mService.getI2cBusList : " + mService.getI2cBusList());
-        Logger.d(LOG_TAG, "onGetGPIOInfoButtonClick mService.getI2sDeviceList : " + mService.getI2sDeviceList());
+//        Logger.d(LOG_TAG, "onGetGPIOInfoButtonClick mService.getI2sDeviceList : " + mService.getI2sDeviceList());
     }
 
     private void onLedButtonClick(int index) {
@@ -566,14 +566,13 @@ public class MainActivity extends BaseActivity {
     private GpioCallback mGPIOCallback = new GpioCallback() {
         @Override
         public boolean onGpioEdge(Gpio gpio) {
-            Logger.i(LOG_TAG, "mGPIOCallback onGpioEdge");
-            return super.onGpioEdge(gpio);
+            Logger.i(LOG_TAG, "SensorEventListener onGpioEdge");
+            return false;
         }
 
         @Override
         public void onGpioError(Gpio gpio, int error) {
-            super.onGpioError(gpio, error);
-            Logger.i(LOG_TAG, "mGPIOCallback onGpioError");
+            Logger.i(LOG_TAG, "GpioCallback onGpioEdge");
         }
     };
 }

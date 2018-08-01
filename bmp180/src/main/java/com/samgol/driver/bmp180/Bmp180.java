@@ -4,7 +4,7 @@ import android.support.annotation.IntDef;
 import android.util.Log;
 
 import com.google.android.things.pio.I2cDevice;
-import com.google.android.things.pio.PeripheralManagerService;
+import com.google.android.things.pio.PeripheralManager;
 
 import java.io.IOException;
 import java.lang.annotation.Retention;
@@ -88,7 +88,7 @@ public class Bmp180 implements AutoCloseable {
 
     public Bmp180(String i2cName) {
         try {
-            mDevice = new PeripheralManagerService().openI2cDevice(i2cName, BMP180_ADDRESS);
+            mDevice = PeripheralManager.getInstance().openI2cDevice(i2cName, BMP180_ADDRESS);
             try {
                 readCalibrationData();
             } catch (Exception e) {

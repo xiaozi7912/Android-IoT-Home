@@ -4,9 +4,9 @@ import android.hardware.Sensor;
 import android.util.Log;
 
 import com.google.android.things.userdriver.UserDriverManager;
-import com.google.android.things.userdriver.UserSensor;
-import com.google.android.things.userdriver.UserSensorDriver;
-import com.google.android.things.userdriver.UserSensorReading;
+import com.google.android.things.userdriver.sensor.UserSensor;
+import com.google.android.things.userdriver.sensor.UserSensorDriver;
+import com.google.android.things.userdriver.sensor.UserSensorReading;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -73,7 +73,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
 
         if (mBarometerUserDriver == null) {
             mBarometerUserDriver = new BarometerUserDriver();
-            UserDriverManager.getManager().registerSensor(mBarometerUserDriver.getUserSensor());
+            UserDriverManager.getInstance().registerSensor(mBarometerUserDriver.getUserSensor());
         }
     }
 
@@ -89,7 +89,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
 
         if (mTemperatureUserDriver == null) {
             mTemperatureUserDriver = new TemperatureUserDriver();
-            UserDriverManager.getManager().registerSensor(mTemperatureUserDriver.getUserSensor());
+            UserDriverManager.getInstance().registerSensor(mTemperatureUserDriver.getUserSensor());
         }
     }
 
@@ -105,7 +105,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
 
         if (mPressureUserDriver == null) {
             mPressureUserDriver = new PressureUserDriver();
-            UserDriverManager.getManager().registerSensor(mPressureUserDriver.getUserSensor());
+            UserDriverManager.getInstance().registerSensor(mPressureUserDriver.getUserSensor());
         }
     }
 
@@ -114,7 +114,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
      */
     public void unregisterTemperatureSensor() {
         if (mTemperatureUserDriver != null) {
-            UserDriverManager.getManager().unregisterSensor(mTemperatureUserDriver.getUserSensor());
+            UserDriverManager.getInstance().unregisterSensor(mTemperatureUserDriver.getUserSensor());
             mTemperatureUserDriver = null;
         }
     }
@@ -124,7 +124,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
      */
     public void unregisterPressureSensor() {
         if (mPressureUserDriver != null) {
-            UserDriverManager.getManager().unregisterSensor(mPressureUserDriver.getUserSensor());
+            UserDriverManager.getInstance().unregisterSensor(mPressureUserDriver.getUserSensor());
             mPressureUserDriver = null;
         }
     }
@@ -134,13 +134,13 @@ public class Bmp180SensorDriver implements AutoCloseable {
      */
     public void unregisterBarometerSensor() {
         if (mBarometerUserDriver != null) {
-            UserDriverManager.getManager().unregisterSensor(mBarometerUserDriver.getUserSensor());
+            UserDriverManager.getInstance().unregisterSensor(mBarometerUserDriver.getUserSensor());
             mBarometerUserDriver = null;
         }
     }
 
 
-    private class PressureUserDriver extends UserSensorDriver {
+    private class PressureUserDriver implements UserSensorDriver {
         // DRIVER parameters
         // documented at https://source.android.com/devices/sensors/hal-interface.html#sensor_t
         private static final float DRIVER_MAX_RANGE = Bmp180.MAX_PRESSURE_HPA;
@@ -164,7 +164,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
                         .setPower(DRIVER_POWER)
                         .setMinDelay(500000)
 //                        .setMinDelay(DRIVER_MIN_DELAY_US)
-                        .setRequiredPermission(DRIVER_REQUIRED_PERMISSION)
+//                        .setRequiredPermission(DRIVER_REQUIRED_PERMISSION)
 //                        .setMaxDelay(DRIVER_MAX_DELAY_US)
                         .setUuid(UUID.randomUUID())
                         .setDriver(this)
@@ -192,7 +192,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
     }
 
 
-    private class BarometerUserDriver extends UserSensorDriver {
+    private class BarometerUserDriver implements UserSensorDriver {
         private static final float DRIVER_RESOLUTION = 0.005f;
         private static final float DRIVER_POWER = Bmp180.MAX_POWER_CONSUMPTION_TEMP_UA / 1000.f;
         private static final int DRIVER_VERSION = 1;
@@ -212,7 +212,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
                         .setResolution(DRIVER_RESOLUTION)
                         .setMinDelay(500000)
                         .setPower(DRIVER_POWER)
-                        .setRequiredPermission(DRIVER_REQUIRED_PERMISSION)
+//                        .setRequiredPermission(DRIVER_REQUIRED_PERMISSION)
                         .setUuid(UUID.randomUUID())
                         .setDriver(this)
                         .build();
@@ -237,7 +237,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
 
     }
 
-    private class TemperatureUserDriver extends UserSensorDriver {
+    private class TemperatureUserDriver implements UserSensorDriver {
         // DRIVER parameters
         // documented at https://source.android.com/devices/sensors/hal-interface.html#sensor_t
         private static final float DRIVER_MAX_RANGE = Bmp180.MAX_TEMP_C;
@@ -261,7 +261,7 @@ public class Bmp180SensorDriver implements AutoCloseable {
                         .setPower(DRIVER_POWER)
                         .setMinDelay(500000)
 //                        .setMinDelay(DRIVER_MIN_DELAY_US)
-                        .setRequiredPermission(DRIVER_REQUIRED_PERMISSION)
+//                        .setRequiredPermission(DRIVER_REQUIRED_PERMISSION)
 //                        .setMaxDelay(DRIVER_MAX_DELAY_US)
                         .setUuid(UUID.randomUUID())
                         .setDriver(this)
